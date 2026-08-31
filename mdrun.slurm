@@ -10,7 +10,7 @@ module load miniforge3
 eval "$(conda shell.bash hook)"
 conda activate nextflow
 
-source ~/gromacs/bin/GMXRC
+source ~/gromacs-2026.3/bin/GMXRC
 
 nextflow run main.nf \
     -with-report \
