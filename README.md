@@ -1,4 +1,4 @@
-# Running the cluster_mdrun Pipeline
+# Running gmx-mdrun-slurm on the UZH ScienceCluster
 
 1. Adjust the SLURM submission script `mdrun.slurm`, for example you can add your email address.
 2. Place the `.tpr` run input files in the `/data` directory.
