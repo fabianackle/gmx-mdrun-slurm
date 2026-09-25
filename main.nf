@@ -17,6 +17,7 @@ workflow {
 }
 
 process MDRUN {
+    container "oras://ghcr.io/fabianackle/gromacs:2026.3-r1"
     tag "${sample_id}"
 
     publishDir params.outdir, mode: 'copy'

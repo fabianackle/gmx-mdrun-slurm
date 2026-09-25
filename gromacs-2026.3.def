@@ -1,0 +1,67 @@
+Bootstrap: docker
+From: ubuntu:26.04
+Stage: build
+
+%post
+    set -e
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        build-essential cmake ca-certificates curl python3
+    rm -rf /var/lib/apt/lists/*
+
+    mkdir -p /build
+    cd /build
+    curl --fail --location --retry 3 \
+        https://ftp.gromacs.org/gromacs/gromacs-2026.3.tar.gz \
+        -o gromacs-2026.3.tar.gz
+    tar -xzf gromacs-2026.3.tar.gz
+    mkdir gromacs-2026.3/build
+    cd gromacs-2026.3/build
+
+    cmake .. \
+        -DGMX_BUILD_OWN_FFTW=ON \
+        -DREGRESSIONTEST_DOWNLOAD=OFF \
+        -DCMAKE_INSTALL_PREFIX=/opt/gromacs-2026.3 \
+        -DGMX_USE_HDF5=OFF \
+        -DGMX_GPU=OFF \
+        -DGMX_MPI=OFF \
+        -DGMX_SIMD=AVX_512
+    cmake --build . --parallel "$(nproc)"
+    cmake --install . --strip
+
+Bootstrap: docker
+From: ubuntu:26.04
+Stage: production
+
+%files from build
+    /opt/gromacs-2026.3 /opt/gromacs-2026.3
+
+%post
+    set -e
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        libstdc++6 libgcc-s1 libgomp1
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+
+%environment
+    . /opt/gromacs-2026.3/bin/GMXRC
+
+%runscript
+    exec /opt/gromacs-2026.3/bin/gmx "$@"
+
+%labels
+    org.opencontainers.image.title GROMACS CPU AVX-512
+    org.opencontainers.image.version 2026.3
+    org.opencontainers.image.base.name ubuntu:26.04
+
+%help
+    GROMACS 2026.3 on Ubuntu 26.04 LTS. CPU-only, AVX-512, thread-MPI/OpenMP.
+    Requires an AVX-512 CPU at runtime. GMXRC is sourced automatically.
+
+    Build:
+      apptainer build --fakeroot gromacs-2026.3.sif gromacs-2026.3.def
+    Run:
+      apptainer exec gromacs-2026.3.sif gmx mdrun -deffnm production
