@@ -8,26 +8,27 @@ Stage: build
     apt-get update
     apt-get install -y --no-install-recommends \
         build-essential cmake ca-certificates curl python3
-    rm -rf /var/lib/apt/lists/*
 
     mkdir -p /build
     cd /build
     curl --fail --location --retry 3 \
         https://ftp.gromacs.org/gromacs/gromacs-2026.3.tar.gz \
         -o gromacs-2026.3.tar.gz
+    echo "7987af0c6ab939ab6e639f32d0dd260f  gromacs-2026.3.tar.gz" | md5sum -c -
     tar -xzf gromacs-2026.3.tar.gz
     mkdir gromacs-2026.3/build
     cd gromacs-2026.3/build
 
     cmake .. \
         -DGMX_BUILD_OWN_FFTW=ON \
-        -DREGRESSIONTEST_DOWNLOAD=OFF \
+        -DREGRESSIONTEST_DOWNLOAD=ON \
         -DCMAKE_INSTALL_PREFIX=/opt/gromacs-2026.3 \
         -DGMX_USE_HDF5=OFF \
         -DGMX_GPU=OFF \
         -DGMX_MPI=OFF \
         -DGMX_SIMD=AVX_512
     cmake --build . --parallel "$(nproc)"
+    cmake --build . --target check --parallel "$(nproc)"
     cmake --install . --strip
 
 Bootstrap: docker
@@ -56,6 +57,7 @@ Stage: production
     org.opencontainers.image.title GROMACS CPU AVX-512
     org.opencontainers.image.version 2026.3
     org.opencontainers.image.base.name ubuntu:26.04
+    org.opencontainers.image.description GROMACS 2026.3 on Ubuntu 26.04 LTS. CPU-only, AVX-512, thread-MPI/OpenMP.
 
 %help
     GROMACS 2026.3 on Ubuntu 26.04 LTS. CPU-only, AVX-512, thread-MPI/OpenMP.
