@@ -1,0 +1,64 @@
+Bootstrap: docker
+From: alpine:3.24
+Stage: build
+
+%post
+    set -e
+
+    apk add --no-cache \
+        build-base \
+        cmake \
+        ca-certificates \
+        curl \
+        python3 \
+        perl \
+        bash \
+        tinyxml2-dev
+
+    mkdir -p /build
+    cd /build
+
+    curl --fail --location --retry 3 \
+        https://ftp.gromacs.org/gromacs/gromacs-2026.3.tar.gz \
+        -o gromacs-2026.3.tar.gz
+
+    echo "7987af0c6ab939ab6e639f32d0dd260f  gromacs-2026.3.tar.gz" | md5sum -c -
+
+    tar -xzf gromacs-2026.3.tar.gz
+    mkdir gromacs-2026.3/build
+    cd gromacs-2026.3/build
+
+    cmake .. \
+        -DGMX_BUILD_OWN_FFTW=ON \
+        -DREGRESSIONTEST_DOWNLOAD=ON \
+        -DCMAKE_INSTALL_PREFIX=/opt/gromacs-2026.3 \
+        -DGMX_EXTERNAL_TINYXML2=ON \
+        -DGMX_USE_HDF5=OFF \
+        -DGMX_GPU=OFF \
+        -DGMX_MPI=OFF \
+        -DGMX_SIMD=AVX_512
+
+    cmake --build . --parallel "$(nproc)"
+    cmake --build . --target check
+    cmake --install . --strip
+
+
+Bootstrap: docker
+From: alpine:3.24
+Stage: production
+
+%files from build
+    /opt/gromacs-2026.3 /opt/gromacs-2026.3
+
+%post
+    apk add --no-cache \
+        libstdc++ \
+        libgcc \
+        libgomp \
+        bash
+
+%environment
+    . /opt/gromacs-2026.3/bin/GMXRC
+
+%runscript
+    exec /opt/gromacs-2026.3/bin/gmx "$@"
