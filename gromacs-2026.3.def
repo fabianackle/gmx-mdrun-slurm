@@ -28,7 +28,7 @@ Stage: build
         -DGMX_MPI=OFF \
         -DGMX_SIMD=AVX_512
     cmake --build . --parallel "$(nproc)"
-    #cmake --build . --target check --parallel "$(nproc)"
+    cmake --build . --target check
     cmake --install . --strip
 
 Bootstrap: docker
